@@ -12,12 +12,12 @@ body{background:#04080f;color:#c8dce8;font-family:'Courier New',monospace;min-he
 .hdr-sub{color:#4a6a7a;font-size:9px;letter-spacing:2px;margin-left:10px}
 .brain-dot{width:7px;height:7px;border-radius:50%;background:#4a6a7a;display:inline-block;margin-right:6px;transition:all 0.3s}
 .brain-dot.live{background:#00ff88;box-shadow:0 0 8px #00ff88}
-.controls{background:#080e1a;border-bottom:1px solid #0f1e33;padding:10px 18px;display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
-.ctrl label{color:#4a6a7a;font-size:7px;letter-spacing:2px;display:block;margin-bottom:2px}
-.ctrl input{background:#04080f;border:1px solid #0f1e33;color:#00e5ff;font-family:monospace;font-size:12px;padding:3px 6px;border-radius:4px;width:100%;outline:none}
-.stats{background:#060c14;border-bottom:1px solid #0f1e33;padding:12px 18px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.controls{background:#080e1a;border-bottom:1px solid #0f1e33;padding:8px 12px;display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+.ctrl label{color:#4a6a7a;font-size:6px;letter-spacing:1px;display:block;margin-bottom:2px}
+.ctrl input{background:#04080f;border:1px solid #0f1e33;color:#00e5ff;font-family:monospace;font-size:11px;padding:2px 4px;border-radius:4px;width:100%;outline:none}
+.stats{background:#060c14;border-bottom:1px solid #0f1e33;padding:8px 12px;display:flex;justify-content:space-between;gap:6px}
 .stat{display:flex;flex-direction:column;gap:2px}
-.stat-val{font-family:monospace;font-size:20px;font-weight:700}
+.stat-val{font-family:monospace;font-size:16px;font-weight:700}
 .stat-lbl{color:#4a6a7a;font-family:monospace;font-size:8px;text-transform:uppercase;letter-spacing:2px}
 .tabs{display:flex;border-bottom:1px solid #0f1e33;background:#080e1a}
 .tab{flex:1;padding:9px 0;background:transparent;border:none;border-bottom:2px solid transparent;color:#4a6a7a;font-family:monospace;font-size:10px;letter-spacing:2px;cursor:pointer;text-transform:uppercase}
@@ -316,7 +316,7 @@ function loadOrbit(p,q){
 }
 
 // ── AUTO SWEEP ──
-var autoRunning=false,autoIdx=0,autoTimer2=null;
+var autoRunning=false,autoIdx=0,autoTimer2=null,autoSeen=new Set();
 
 function toggleAuto(){
   autoRunning=!autoRunning;
@@ -340,6 +340,14 @@ function toggleAuto(){
 }
 
 function doAutoStep(){
+  // skip already-seen orbits (same reduced slope)
+  var skips=0;
+  while(skips<ALL.length){
+    var o2=ALL[autoIdx],g2=gcd(o2.p,o2.q),key=(o2.p/g2)+"/"+(o2.q/g2);
+    if(!autoSeen.has(key))break;
+    autoIdx=(autoIdx+1)%ALL.length;skips++;
+  }
+  if(skips>=ALL.length){autoSeen.clear();}
   var o=ALL[autoIdx];
   document.getElementById('sX').value=o.p;
   document.getElementById('sY').value=o.q;
