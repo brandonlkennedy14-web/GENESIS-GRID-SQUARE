@@ -10,7 +10,7 @@ body{background:#04080f;color:#c8dce8;font-family:'Courier New',monospace;min-he
 .hdr{background:#080e1a;border-bottom:1px solid #0f1e33;padding:12px 18px;display:flex;justify-content:space-between;align-items:center}
 .hdr-title{color:#00e5ff;font-size:16px;font-weight:700;letter-spacing:3px}
 .hdr-sub{color:#4a6a7a;font-size:9px;letter-spacing:2px;margin-left:10px}
-.brain-dot{width:7px;height:7px;border-radius:50%;background:#4a6a7a;display:inline-block;margin-right:6px}
+.brain-dot{width:7px;height:7px;border-radius:50%;background:#4a6a7a;display:inline-block;margin-right:6px;transition:all 0.3s}
 .brain-dot.live{background:#00ff88;box-shadow:0 0 8px #00ff88}
 .controls{background:#080e1a;border-bottom:1px solid #0f1e33;padding:10px 18px;display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
 .ctrl label{color:#4a6a7a;font-size:7px;letter-spacing:2px;display:block;margin-bottom:2px}
@@ -44,6 +44,9 @@ canvas{border-radius:8px;border:1px solid #0f1e33;display:block}
 .log-entry{font-size:9px;font-family:monospace;padding:2px 0}
 .footer{border-top:1px solid #0f1e33;padding:7px 18px;display:flex;justify-content:space-between;background:#080e1a}
 .footer span{color:#4a6a7a;font-size:7px;letter-spacing:2px}
+.sim-controls{display:flex;gap:8px;margin-bottom:10px}
+.sim-btn{padding:6px 14px;font-family:monospace;font-size:9px;border-radius:4px;cursor:pointer;border:1px solid #0f1e33;background:#080e1a;color:#4a6a7a;letter-spacing:1px}
+.sim-btn.active{border-color:#00e5ff;color:#00e5ff;background:rgba(0,229,255,0.1)}
 </style>
 </head>
 <body>
@@ -65,7 +68,7 @@ canvas{border-radius:8px;border:1px solid #0f1e33;display:block}
   <div class="stat"><span class="stat-val" id="sDiag" style="color:#00e5ff">0</span><span class="stat-lbl">Diagonal</span></div>
   <div class="stat"><span class="stat-val" id="sOff" style="color:#ff00aa">0</span><span class="stat-lbl">Off-Diag</span></div>
   <div class="stat"><span class="stat-val" id="sCorner" style="color:#ffd700">0</span><span class="stat-lbl">Corners</span></div>
-  <div class="stat"><span class="stat-val" id="sSlope" style="color:#aa00ff">3/4</span><span class="stat-lbl">Slope</span></div>
+  <div class="stat"><span class="stat-val" id="sSlope" style="color:#aa00ff">4/3</span><span class="stat-lbl">Slope</span></div>
   <div class="stat"><span class="stat-val" id="sGrade" style="color:#00ff88">A</span><span class="stat-lbl">Grade</span></div>
 </div>
 
@@ -79,7 +82,12 @@ canvas{border-radius:8px;border:1px solid #0f1e33;display:block}
 
 <div class="content">
   <div id="tab-grid">
-    <div class="lbl">BILLIARD TRAJECTORY</div>
+    <div class="sim-controls">
+      <button class="sim-btn active" id="btnPlay" onclick="toggleSim()">⏵ PLAY</button>
+      <button class="sim-btn" onclick="resetSim()">↺ RESET</button>
+      <span id="simStep" style="color:#4a6a7a;font-size:9px;line-height:32px;margin-left:4px">step 0</span>
+    </div>
+    <div class="lbl">BILLIARD TRAJECTORY · LIVE ANIMATION</div>
     <canvas id="gridCanvas" width="340" height="280"></canvas>
     <div class="legend"><span style="color:#00e5ff">● diagonal</span><span style="color:#ffd700">● corner</span><span style="color:#00ff88">□ start</span></div>
   </div>
@@ -97,13 +105,13 @@ canvas{border-radius:8px;border:1px solid #0f1e33;display:block}
     <div class="lbl">AUTO-SWEEP · ALL RATIONAL ORBITS → GENESIS BRAIN</div>
     <div class="auto-box">
       <div class="auto-header">
-        <div><div class="auto-title" id="autoTitle">PAUSED</div><div class="auto-sub" id="autoSub">0/26 orbits</div></div>
-        <button class="btn" id="autoBtn" onclick="toggleAuto()" style="background:rgba(0,255,136,0.1);border-color:#00ff88;color:#00ff88">▶ START</button>
+        <div><div class="auto-title" id="autoTitle">PAUSED</div><div class="auto-sub" id="autoSub">0/26 orbits · 3s each</div></div>
+        <button class="btn" id="autoBtn" style="background:rgba(0,255,136,0.1);border-color:#00ff88;color:#00ff88" onclick="toggleAuto()">▶ START</button>
       </div>
       <div class="progress"><div class="progress-bar" id="autoBar" style="width:0%"></div></div>
     </div>
-    <div class="card" style="margin-top:12px"><div class="lbl">SWEEP LOG</div><div id="autoLog"><span style="color:#4a6a7a;font-size:9px">Press START...</span></div></div>
-    <div class="card"><div class="lbl">WHAT BRAIN RECEIVES</div><div style="color:#c8dce8;font-size:9px;line-height:1.8">Each orbit sends: <span style="color:#00e5ff">slope, winding, chaos_ratio, grade</span><br>Music apps react to <span style="color:#ffd700">winding</span> → chord shifts<br>Atomic engine reacts to <span style="color:#ff00aa">chaos_ratio</span> → atom speed</div></div>
+    <div class="card" style="margin-top:12px"><div class="lbl">SWEEP LOG</div><div id="autoLog"><span style="color:#4a6a7a;font-size:9px">Press START to begin sweeping all orbits...</span></div></div>
+    <div class="card"><div class="lbl">WHAT BRAIN RECEIVES</div><div style="color:#c8dce8;font-size:9px;line-height:1.8">Each orbit sends: <span style="color:#00e5ff">slope, winding, chaos_ratio, grade</span><br>Music apps react to <span style="color:#ffd700">winding</span> → chord shifts<br>Atomic engine reacts to <span style="color:#ff00aa">chaos_ratio</span> → atom speed<br>Spectral viewer maps <span style="color:#aa00ff">x_norm</span> → wavelength</div></div>
   </div>
   <div id="tab-data" style="display:none">
     <div class="lbl">FIRST 20 EVENTS</div>
@@ -129,18 +137,52 @@ const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSI
 const HDRS={'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'};
 
 let ver=1;
-async function writeBrain(p){try{await fetch(SUPABASE_URL+'/rest/v1/genesis_brain',{method:'POST',headers:HDRS,body:JSON.stringify({namespace:'billiard',version:ver++,payload:{...p,_ts:Date.now()}})});document.getElementById('bdot').classList.add('live');document.getElementById('blbl').textContent='BRAIN LIVE';document.getElementById('blbl').style.color='#00ff88';}catch(e){}}
+async function writeBrain(p){
+  try{
+    const r=await fetch(SUPABASE_URL+'/rest/v1/genesis_brain',{method:'POST',headers:HDRS,body:JSON.stringify({namespace:'billiard',version:ver++,payload:{...p,_ts:Date.now()}})});
+    if(r.ok){document.getElementById('bdot').classList.add('live');document.getElementById('blbl').textContent='BRAIN LIVE';document.getElementById('blbl').style.color='#00ff88';}
+  }catch(e){}
+}
 
 function gcd(a,b){return b===0?Math.abs(a):gcd(b,a%b);}
-function runBilliard(sX,sY,vx,vy,steps){let x=1,y=1,ph=1,ev=[];for(let t=0;t<steps;t++){const nx=((x+vx-1)%sX)+1,ny=((y+vy-1)%sY)+1;ph=(ph*30)%MOD;ev.push({t,x:nx,y:ny,phase:ph,isDiag:nx===ny,isCorner:(nx===1&&ny===1)||(nx===sX&&ny===sY)||(nx===1&&ny===sY)||(nx===sX&&ny===1)});x=nx;y=ny;}return ev;}
-function getOrbits(){const o=[];for(let p=1;p<=6;p++)for(let q=1;q<=6;q++)if(gcd(p,q)===1)o.push({p,q,period:p*q,label:`${p}/${q}`});return o.sort((a,b)=>a.p/a.q-b.p/b.q);}
+
+function runBilliard(sX,sY,vx,vy,steps){
+  let x=1,y=1,ph=1,ev=[];
+  for(let t=0;t<steps;t++){
+    const nx=((x+vx-1)%sX)+1,ny=((y+vy-1)%sY)+1;
+    ph=(ph*30)%MOD;
+    ev.push({t,x:nx,y:ny,phase:ph,isDiag:nx===ny,isCorner:(nx===1&&ny===1)||(nx===sX&&ny===sY)||(nx===1&&ny===sY)||(nx===sX&&ny===1)});
+    x=nx;y=ny;
+  }
+  return ev;
+}
+
+function getOrbits(){
+  const o=[];
+  for(let p=1;p<=6;p++)for(let q=1;q<=6;q++)if(gcd(p,q)===1)o.push({p,q,period:p*q,label:`${p}/${q}`});
+  return o.sort((a,b)=>a.p/a.q-b.p/b.q);
+}
 const ALL=getOrbits();
 
+// ── SIM ANIMATION ──
 let curEvents=[];
+let simPlaying=false;
+let simFrame=0;
+let simTimer=null;
+let drawnUpTo=0;
+
+function getParams(){
+  return{
+    sX:+document.getElementById('sX').value,
+    sY:+document.getElementById('sY').value,
+    vx:+document.getElementById('vX').value,
+    vy:+document.getElementById('vY').value,
+    steps:+document.getElementById('steps').value
+  };
+}
+
 function runSim(){
-  const sX=+document.getElementById('sX').value,sY=+document.getElementById('sY').value;
-  const vx=+document.getElementById('vX').value,vy=+document.getElementById('vY').value;
-  const steps=+document.getElementById('steps').value;
+  const {sX,sY,vx,vy,steps}=getParams();
   curEvents=runBilliard(sX,sY,vx,vy,steps);
   const dH=curEvents.filter(e=>e.isDiag).length,oH=curEvents.filter(e=>!e.isDiag).length,cH=curEvents.filter(e=>e.isCorner).length;
   const g=gcd(Math.abs(vx),Math.abs(vy)),dr=dH/steps;
@@ -149,23 +191,76 @@ function runSim(){
   document.getElementById('sCorner').textContent=cH;
   document.getElementById('sSlope').textContent=`${vy/g}/${vx/g}`;
   document.getElementById('sGrade').textContent=dr>0.4?'A':dr>0.25?'B':'C';
-  drawGrid(curEvents,sX,sY);
   drawPhase(curEvents);
   updatePhaseStats(curEvents,dH,oH,cH);
   updateData(curEvents);
   writeBrain({totalSteps:steps,diagHits:dH,offDiagHits:oH,cornerHits:cH,diagRatio:+dr.toFixed(4),sizeX:sX,sizeY:sY,vx,vy,slope:`${vy/g}/${vx/g}`,winding:+((steps*(vy/g))/(sX*sY)).toFixed(4),chaos_ratio:+((oH/steps).toFixed(4)),grade:dr>0.4?'GRADE_A':dr>0.25?'GRADE_B':'GRADE_C'});
+  // draw full grid static
+  drawnUpTo=curEvents.length;
+  drawGridUpTo(curEvents,sX,sY,drawnUpTo);
 }
 
-function drawGrid(ev,sX,sY){
+function drawGridUpTo(ev,sX,sY,upTo){
   const c=document.getElementById('gridCanvas'),ctx=c.getContext('2d'),W=340,H=280,cW=W/(sX+1),cH=H/(sY+1);
   ctx.fillStyle='#04080f';ctx.fillRect(0,0,W,H);
   ctx.strokeStyle='#0f1e33';ctx.lineWidth=0.5;
   for(let i=1;i<=sX;i++){ctx.beginPath();ctx.moveTo(i*cW,0);ctx.lineTo(i*cW,H);ctx.stroke();}
   for(let j=1;j<=sY;j++){ctx.beginPath();ctx.moveTo(0,j*cH);ctx.lineTo(W,j*cH);ctx.stroke();}
-  const max=Math.min(ev.length,600);
-  for(let i=1;i<max;i++){const p=ev[i-1],cu=ev[i],t=i/max;ctx.strokeStyle=`hsla(${190+t*140},100%,60%,0.55)`;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(p.x*cW,p.y*cH);ctx.lineTo(cu.x*cW,cu.y*cH);ctx.stroke();}
-  ev.forEach(e=>{if(e.isCorner){ctx.fillStyle='#ffd700';ctx.shadowColor='#ffd700';ctx.shadowBlur=10;ctx.beginPath();ctx.arc(e.x*cW,e.y*cH,5,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;}else if(e.isDiag){ctx.fillStyle='#00e5ff';ctx.beginPath();ctx.arc(e.x*cW,e.y*cH,2.5,0,Math.PI*2);ctx.fill();}});
+  const max=Math.min(upTo,ev.length);
+  for(let i=1;i<max;i++){
+    const p=ev[i-1],cu=ev[i],t=i/ev.length;
+    ctx.strokeStyle=`hsla(${190+t*140},100%,60%,0.6)`;
+    ctx.lineWidth=1.2;
+    ctx.beginPath();ctx.moveTo(p.x*cW,p.y*cH);ctx.lineTo(cu.x*cW,cu.y*cH);ctx.stroke();
+  }
+  ev.slice(0,max).forEach(e=>{
+    if(e.isCorner){ctx.fillStyle='#ffd700';ctx.shadowColor='#ffd700';ctx.shadowBlur=12;ctx.beginPath();ctx.arc(e.x*cW,e.y*cH,5,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;}
+    else if(e.isDiag){ctx.fillStyle='#00e5ff';ctx.shadowColor='#00e5ff';ctx.shadowBlur=6;ctx.beginPath();ctx.arc(e.x*cW,e.y*cH,3,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;}
+  });
+  // Draw live ball
+  if(max>0){
+    const last=ev[max-1];
+    ctx.fillStyle='#ffffff';ctx.shadowColor='#ffffff';ctx.shadowBlur=16;
+    ctx.beginPath();ctx.arc(last.x*cW,last.y*cH,5,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;
+  }
   if(ev.length>0){ctx.strokeStyle='#00ff88';ctx.lineWidth=2;ctx.strokeRect(ev[0].x*cW-5,ev[0].y*cH-5,10,10);}
+  document.getElementById('simStep').textContent='step '+max;
+}
+
+function toggleSim(){
+  simPlaying=!simPlaying;
+  const btn=document.getElementById('btnPlay');
+  if(simPlaying){
+    btn.textContent='⏸ PAUSE';btn.classList.add('active');
+    simFrame=0;
+    const {sX,sY}=getParams();
+    animateSim(sX,sY);
+  } else {
+    btn.textContent='⏵ PLAY';
+    cancelAnimationFrame(simTimer);
+  }
+}
+
+function resetSim(){
+  simPlaying=false;
+  document.getElementById('btnPlay').textContent='⏵ PLAY';
+  document.getElementById('btnPlay').classList.add('active');
+  cancelAnimationFrame(simTimer);
+  simFrame=0;
+  const {sX,sY}=getParams();
+  drawGridUpTo(curEvents,sX,sY,1);
+}
+
+let lastAnimTime=0;
+function animateSim(sX,sY){
+  if(!simPlaying)return;
+  const speed=8; // steps per frame
+  simFrame=Math.min(simFrame+speed,curEvents.length);
+  drawGridUpTo(curEvents,sX,sY,simFrame);
+  if(simFrame>=curEvents.length){
+    simFrame=0; // loop
+  }
+  simTimer=requestAnimationFrame(()=>animateSim(sX,sY));
 }
 
 function drawPhase(ev){
@@ -190,7 +285,7 @@ function updateData(ev){
   document.getElementById('dataTable').innerHTML=ev.slice(0,20).map(e=>`<div style="display:grid;grid-template-columns:36px 36px 36px 36px 80px 56px;padding:4px 10px;border-bottom:1px solid #1a2a3a"><span style="color:#4a6a7a;font-size:9px">${e.t}</span><span style="color:#c8dce8;font-size:9px">${e.x}</span><span style="color:#c8dce8;font-size:9px">${e.y}</span><span style="color:${e.isDiag?'#00e5ff':'#4a6a7a'};font-size:9px">${e.isDiag?'●':'○'}</span><span style="color:#aa00ff;font-size:8px">${e.phase}</span><span style="color:${e.isCorner?'#ffd700':e.isDiag?'#00e5ff':'#4a6a7a'};font-size:8px">${e.isCorner?'CORNER':e.isDiag?'DIAG':'off'}</span></div>`).join('');
 }
 
-function drawLattice(sel=null){
+function drawLattice(sel){
   const c=document.getElementById('latticeCanvas'),ctx=c.getContext('2d'),W=340,H=240,pad=28,sX=(W-pad*2)/6,sY=(H-pad*2)/6;
   ctx.fillStyle='#04080f';ctx.fillRect(0,0,W,H);
   ALL.forEach((o,i)=>{ALL.forEach((o2,j)=>{if(i>=j)return;if(Math.abs(o.p*o2.q-o2.p*o.q)===1){ctx.strokeStyle='rgba(0,100,150,0.2)';ctx.lineWidth=0.7;ctx.beginPath();ctx.moveTo(pad+(o.p-1)*sX,H-pad-(o.q-1)*sY);ctx.lineTo(pad+(o2.p-1)*sX,H-pad-(o2.q-1)*sY);ctx.stroke();}});});
@@ -199,8 +294,8 @@ function drawLattice(sel=null){
 }
 
 let selOrbit=null;
-document.getElementById('latticeCanvas').addEventListener('click',e=>{
-  const rect=e.target.getBoundingClientRect(),mx=e.clientX-rect.left,my=e.clientY-rect.top;
+document.getElementById('latticeCanvas').addEventListener('click',function(e){
+  const rect=this.getBoundingClientRect(),mx=e.clientX-rect.left,my=e.clientY-rect.top;
   const pad=28,sX=(340-pad*2)/6,sY=(240-pad*2)/6;
   let best=null,bd=18;
   ALL.forEach(o=>{const d=Math.hypot(mx-(pad+(o.p-1)*sX),my-(240-pad-(o.q-1)*sY));if(d<bd){bd=d;best=o;}});
@@ -211,44 +306,74 @@ function showOrbitDetail(o){
   document.getElementById('orbitDetail').innerHTML=`<div class="card"><div style="color:#00e5ff;font-size:13px;font-weight:700;margin-bottom:8px">ORBIT ${o.label}</div>${[['p',o.p],['q',o.q],['Period',o.period],['Slope',(o.q/o.p).toFixed(4)]].map(([k,v])=>`<div class="row"><span>${k}</span><span style="color:#c8dce8">${v}</span></div>`).join('')}<button onclick="loadOrbit(${o.p},${o.q})" style="margin-top:10px;width:100%;padding:7px 0;background:rgba(0,229,255,0.1);border:1px solid #00e5ff;color:#00e5ff;font-family:monospace;font-size:10px;border-radius:4px;cursor:pointer">LOAD INTO SIM</button></div>`;
 }
 
-function loadOrbit(p,q){document.getElementById('sX').value=p;document.getElementById('sY').value=q;document.getElementById('vX').value=q;document.getElementById('vY').value=p;runSim();showTab('grid',document.querySelector('.tab'));}
+function loadOrbit(p,q){
+  document.getElementById('sX').value=p;
+  document.getElementById('sY').value=q;
+  document.getElementById('vX').value=q;
+  document.getElementById('vY').value=p;
+  runSim();
+  showTab('grid',document.querySelectorAll('.tab')[0]);
+}
 
-// Auto sweep
-let autoRunning=false,autoIdx=0,autoTimer=null;
+// ── AUTO SWEEP ──
+var autoRunning=false,autoIdx=0,autoTimer2=null;
+
 function toggleAuto(){
   autoRunning=!autoRunning;
-  const btn=document.getElementById('autoBtn');
-  if(autoRunning){btn.textContent='⏹ STOP';btn.style.borderColor='#ff00aa';btn.style.color='#ff00aa';btn.style.background='rgba(255,0,170,0.1)';autoTimer=setInterval(doAutoStep,3000);doAutoStep();}
-  else{clearInterval(autoTimer);btn.textContent='▶ START';btn.style.borderColor='#00ff88';btn.style.color='#00ff88';btn.style.background='rgba(0,255,136,0.1)';document.getElementById('footerStatus').textContent='MANUAL';}
+  var btn=document.getElementById('autoBtn');
+  if(autoRunning){
+    btn.textContent='⏹ STOP';
+    btn.style.borderColor='#ff00aa';
+    btn.style.color='#ff00aa';
+    btn.style.background='rgba(255,0,170,0.1)';
+    doAutoStep();
+    autoTimer2=setInterval(doAutoStep,3000);
+  } else {
+    clearInterval(autoTimer2);
+    btn.textContent='▶ START';
+    btn.style.borderColor='#00ff88';
+    btn.style.color='#00ff88';
+    btn.style.background='rgba(0,255,136,0.1)';
+    document.getElementById('autoTitle').textContent='PAUSED';
+    document.getElementById('footerStatus').textContent='MANUAL';
+  }
 }
+
 function doAutoStep(){
-  const o=ALL[autoIdx];
-  document.getElementById('sX').value=o.p;document.getElementById('sY').value=o.q;document.getElementById('vX').value=o.q;document.getElementById('vY').value=o.p;
+  var o=ALL[autoIdx];
+  document.getElementById('sX').value=o.p;
+  document.getElementById('sY').value=o.q;
+  document.getElementById('vX').value=o.q;
+  document.getElementById('vY').value=o.p;
   runSim();
   document.getElementById('autoTitle').textContent='SWEEPING '+o.label;
   document.getElementById('autoSub').textContent=(autoIdx+1)+'/'+ALL.length+' orbits · 3s each';
   document.getElementById('autoBar').style.width=((autoIdx+1)/ALL.length*100)+'%';
   document.getElementById('footerStatus').textContent='AUTO '+(autoIdx+1)+'/'+ALL.length;
-  const log=document.getElementById('autoLog');
-  const entry=document.createElement('div');entry.className='log-entry';entry.style.color=autoIdx===0?'#00ff88':'#4a6a7a';entry.textContent=`[${o.label}] p=${o.p} q=${o.q} T=${o.period}`;log.insertBefore(entry,log.firstChild);if(log.children.length>30)log.removeChild(log.lastChild);
+  var log=document.getElementById('autoLog');
+  var entry=document.createElement('div');
+  entry.className='log-entry';
+  entry.style.color=autoIdx===0?'#00ff88':'#4a6a7a';
+  entry.textContent='['+o.label+'] p='+o.p+' q='+o.q+' T='+o.period;
+  log.insertBefore(entry,log.firstChild);
+  if(log.children.length>30)log.removeChild(log.lastChild);
   autoIdx=(autoIdx+1)%ALL.length;
 }
 
 function showTab(name,btn){
-  ['grid','phase','lattice','auto','data'].forEach(t=>document.getElementById('tab-'+t).style.display='none');
-  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  ['grid','phase','lattice','auto','data'].forEach(function(t){document.getElementById('tab-'+t).style.display='none';});
+  document.querySelectorAll('.tab').forEach(function(b){b.classList.remove('active');});
   document.getElementById('tab-'+name).style.display='block';
-  btn.classList.add('active');
+  if(btn)btn.classList.add('active');
   if(name==='lattice')drawLattice(selOrbit);
 }
 
 // Init
-document.querySelectorAll('.controls input').forEach(i=>i.addEventListener('change',runSim));
+document.querySelectorAll('.controls input').forEach(function(i){i.addEventListener('change',runSim);});
 runSim();
-drawLattice();
 
-// Show orbit grid in lattice tab initially
-document.getElementById('orbitDetail').innerHTML='<div class="orbit-grid">'+ALL.map((o,i)=>`<div class="orbit-node" style="border:1px solid ${OC[i%OC.length]}44" onclick="selOrbit=ALL[${i}];drawLattice(ALL[${i}]);showOrbitDetail(ALL[${i}])"><span class="orbit-name" style="color:${OC[i%OC.length]}">${o.label}</span><div class="orbit-t">T=${o.period}</div></div>`).join('')+'</div>';
+// Orbit grid in lattice
+document.getElementById('orbitDetail').innerHTML='<div class="orbit-grid">'+ALL.map(function(o,i){return'<div class="orbit-node" style="border:1px solid '+OC[i%OC.length]+'44" onclick="selOrbit=ALL['+i+'];drawLattice(ALL['+i+']);showOrbitDetail(ALL['+i+'])"><span class="orbit-name" style="color:'+OC[i%OC.length]+'">'+o.label+'</span><div class="orbit-t">T='+o.period+'</div></div>';}).join('')+'</div>';
 </script>
 </body>
 </html>
