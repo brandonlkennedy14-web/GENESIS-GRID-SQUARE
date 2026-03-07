@@ -1,16 +1,254 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Genesis Grid</title>
-    <style>
-      * { margin: 0; padding: 0; box-sizing: border-box; }
-      body { background: #04080f; }
-    </style>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Genesis Grid</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#04080f;color:#c8dce8;font-family:'Courier New',monospace;min-height:100vh;display:flex;flex-direction:column}
+.hdr{background:#080e1a;border-bottom:1px solid #0f1e33;padding:12px 18px;display:flex;justify-content:space-between;align-items:center}
+.hdr-title{color:#00e5ff;font-size:16px;font-weight:700;letter-spacing:3px}
+.hdr-sub{color:#4a6a7a;font-size:9px;letter-spacing:2px;margin-left:10px}
+.brain-dot{width:7px;height:7px;border-radius:50%;background:#4a6a7a;display:inline-block;margin-right:6px}
+.brain-dot.live{background:#00ff88;box-shadow:0 0 8px #00ff88}
+.controls{background:#080e1a;border-bottom:1px solid #0f1e33;padding:10px 18px;display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.ctrl label{color:#4a6a7a;font-size:7px;letter-spacing:2px;display:block;margin-bottom:2px}
+.ctrl input{background:#04080f;border:1px solid #0f1e33;color:#00e5ff;font-family:monospace;font-size:12px;padding:3px 6px;border-radius:4px;width:100%;outline:none}
+.stats{background:#060c14;border-bottom:1px solid #0f1e33;padding:12px 18px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.stat{display:flex;flex-direction:column;gap:2px}
+.stat-val{font-family:monospace;font-size:20px;font-weight:700}
+.stat-lbl{color:#4a6a7a;font-family:monospace;font-size:8px;text-transform:uppercase;letter-spacing:2px}
+.tabs{display:flex;border-bottom:1px solid #0f1e33;background:#080e1a}
+.tab{flex:1;padding:9px 0;background:transparent;border:none;border-bottom:2px solid transparent;color:#4a6a7a;font-family:monospace;font-size:10px;letter-spacing:2px;cursor:pointer;text-transform:uppercase}
+.tab.active{background:#04080f;border-bottom:2px solid #00e5ff;color:#00e5ff}
+.content{padding:14px;flex:1;overflow-y:auto}
+canvas{border-radius:8px;border:1px solid #0f1e33;display:block}
+.lbl{color:#4a6a7a;font-size:8px;letter-spacing:2px;margin-bottom:6px;text-transform:uppercase}
+.card{background:#080e1a;border:1px solid #0f1e33;border-radius:8px;padding:12px;margin-top:12px}
+.row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid #1a2a3a}
+.row span:first-child{color:#4a6a7a;font-size:10px}
+.row span:last-child{color:#00ff88;font-size:10px;font-family:monospace}
+.legend{font-size:8px;color:#4a6a7a;display:flex;gap:14px;margin-top:8px}
+.orbit-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px}
+.orbit-node{background:#04080f;border-radius:4px;padding:6px 4px;text-align:center;cursor:pointer}
+.orbit-name{font-size:12px;font-weight:700}
+.orbit-t{color:#4a6a7a;font-size:7px}
+.auto-box{background:#080e1a;border:1px solid #0f1e33;border-radius:8px;padding:14px}
+.auto-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.auto-title{color:#00e5ff;font-size:14px;font-weight:700}
+.auto-sub{color:#4a6a7a;font-size:8px;margin-top:2px}
+.btn{padding:10px 18px;font-family:monospace;font-size:11px;border-radius:4px;cursor:pointer;border:1px solid}
+.progress{background:#1a2a3a;border-radius:4px;height:6px;overflow:hidden;margin-top:10px}
+.progress-bar{height:100%;transition:width 0.3s;background:#00e5ff}
+.log-entry{font-size:9px;font-family:monospace;padding:2px 0}
+.footer{border-top:1px solid #0f1e33;padding:7px 18px;display:flex;justify-content:space-between;background:#080e1a}
+.footer span{color:#4a6a7a;font-size:7px;letter-spacing:2px}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div><span class="hdr-title">GENESIS</span><span class="hdr-sub">RATIONAL BILLIARD BASELINE</span></div>
+  <div style="display:flex;align-items:center"><span class="brain-dot" id="bdot"></span><span id="blbl" style="color:#4a6a7a;font-size:8px;letter-spacing:2px">OFFLINE</span></div>
+</div>
+
+<div class="controls">
+  <div class="ctrl"><label>SIZE X</label><input type="number" id="sX" value="3" min="2" max="8"></div>
+  <div class="ctrl"><label>SIZE Y</label><input type="number" id="sY" value="3" min="2" max="8"></div>
+  <div class="ctrl"><label>VEL X</label><input type="number" id="vX" value="3" min="1" max="12"></div>
+  <div class="ctrl"><label>VEL Y</label><input type="number" id="vY" value="4" min="1" max="12"></div>
+  <div class="ctrl"><label>STEPS</label><input type="number" id="steps" value="2000" min="100" max="5000" step="100"></div>
+</div>
+
+<div class="stats">
+  <div class="stat"><span class="stat-val" id="sDiag" style="color:#00e5ff">0</span><span class="stat-lbl">Diagonal</span></div>
+  <div class="stat"><span class="stat-val" id="sOff" style="color:#ff00aa">0</span><span class="stat-lbl">Off-Diag</span></div>
+  <div class="stat"><span class="stat-val" id="sCorner" style="color:#ffd700">0</span><span class="stat-lbl">Corners</span></div>
+  <div class="stat"><span class="stat-val" id="sSlope" style="color:#aa00ff">3/4</span><span class="stat-lbl">Slope</span></div>
+  <div class="stat"><span class="stat-val" id="sGrade" style="color:#00ff88">A</span><span class="stat-lbl">Grade</span></div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="showTab('grid',this)">GRID</button>
+  <button class="tab" onclick="showTab('phase',this)">PHASE</button>
+  <button class="tab" onclick="showTab('lattice',this)">LATTICE</button>
+  <button class="tab" onclick="showTab('auto',this)">AUTO</button>
+  <button class="tab" onclick="showTab('data',this)">DATA</button>
+</div>
+
+<div class="content">
+  <div id="tab-grid">
+    <div class="lbl">BILLIARD TRAJECTORY</div>
+    <canvas id="gridCanvas" width="340" height="280"></canvas>
+    <div class="legend"><span style="color:#00e5ff">● diagonal</span><span style="color:#ffd700">● corner</span><span style="color:#00ff88">□ start</span></div>
+  </div>
+  <div id="tab-phase" style="display:none">
+    <div class="lbl">PHASE SPACE · POSITION × PHASE ANGLE</div>
+    <canvas id="phaseCanvas" width="340" height="260"></canvas>
+    <div class="card" id="phaseStats"></div>
+  </div>
+  <div id="tab-lattice" style="display:none">
+    <div class="lbl">ALL RATIONAL ORBITS · FAREY LATTICE · TAP TO INSPECT</div>
+    <canvas id="latticeCanvas" width="340" height="240"></canvas>
+    <div id="orbitDetail"></div>
+  </div>
+  <div id="tab-auto" style="display:none">
+    <div class="lbl">AUTO-SWEEP · ALL RATIONAL ORBITS → GENESIS BRAIN</div>
+    <div class="auto-box">
+      <div class="auto-header">
+        <div><div class="auto-title" id="autoTitle">PAUSED</div><div class="auto-sub" id="autoSub">0/26 orbits</div></div>
+        <button class="btn" id="autoBtn" onclick="toggleAuto()" style="background:rgba(0,255,136,0.1);border-color:#00ff88;color:#00ff88">▶ START</button>
+      </div>
+      <div class="progress"><div class="progress-bar" id="autoBar" style="width:0%"></div></div>
+    </div>
+    <div class="card" style="margin-top:12px"><div class="lbl">SWEEP LOG</div><div id="autoLog"><span style="color:#4a6a7a;font-size:9px">Press START...</span></div></div>
+    <div class="card"><div class="lbl">WHAT BRAIN RECEIVES</div><div style="color:#c8dce8;font-size:9px;line-height:1.8">Each orbit sends: <span style="color:#00e5ff">slope, winding, chaos_ratio, grade</span><br>Music apps react to <span style="color:#ffd700">winding</span> → chord shifts<br>Atomic engine reacts to <span style="color:#ff00aa">chaos_ratio</span> → atom speed</div></div>
+  </div>
+  <div id="tab-data" style="display:none">
+    <div class="lbl">FIRST 20 EVENTS</div>
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="display:grid;grid-template-columns:36px 36px 36px 36px 80px 56px;padding:6px 10px;border-bottom:1px solid #0f1e33">
+        <span style="color:#4a6a7a;font-size:8px">#</span><span style="color:#4a6a7a;font-size:8px">X</span><span style="color:#4a6a7a;font-size:8px">Y</span><span style="color:#4a6a7a;font-size:8px">D</span><span style="color:#4a6a7a;font-size:8px">Phase</span><span style="color:#4a6a7a;font-size:8px">Type</span>
+      </div>
+      <div id="dataTable"></div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  <span>MOD 1000003 · 26 ORBITS</span>
+  <span id="footerStatus">MANUAL</span>
+</div>
+
+<script>
+const MOD=1000003;
+const OC=["#00e5ff","#ff00aa","#ffd700","#00ff88","#aa00ff","#ff6600","#00ccff","#ff3366","#88ff00","#ff44cc","#00ffcc","#ffaa00","#6644ff","#ff2200","#00ff44"];
+const SUPABASE_URL='https://xoolmbmnzbsvcqeyqvyi.supabase.co';
+const SUPABASE_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhvb2xtYm1uemJzdmNxZXlxdnlpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE0NDMwNDQsImV4cCI6MjA4NzAxOTA0NH0.ebTwMZ_byU6EXtuR0jynct64QO5ornQrCwElQ5b9TxQ';
+const HDRS={'apikey':SUPABASE_KEY,'Authorization':'Bearer '+SUPABASE_KEY,'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'};
+
+let ver=1;
+async function writeBrain(p){try{await fetch(SUPABASE_URL+'/rest/v1/genesis_brain',{method:'POST',headers:HDRS,body:JSON.stringify({namespace:'billiard',version:ver++,payload:{...p,_ts:Date.now()}})});document.getElementById('bdot').classList.add('live');document.getElementById('blbl').textContent='BRAIN LIVE';document.getElementById('blbl').style.color='#00ff88';}catch(e){}}
+
+function gcd(a,b){return b===0?Math.abs(a):gcd(b,a%b);}
+function runBilliard(sX,sY,vx,vy,steps){let x=1,y=1,ph=1,ev=[];for(let t=0;t<steps;t++){const nx=((x+vx-1)%sX)+1,ny=((y+vy-1)%sY)+1;ph=(ph*30)%MOD;ev.push({t,x:nx,y:ny,phase:ph,isDiag:nx===ny,isCorner:(nx===1&&ny===1)||(nx===sX&&ny===sY)||(nx===1&&ny===sY)||(nx===sX&&ny===1)});x=nx;y=ny;}return ev;}
+function getOrbits(){const o=[];for(let p=1;p<=6;p++)for(let q=1;q<=6;q++)if(gcd(p,q)===1)o.push({p,q,period:p*q,label:`${p}/${q}`});return o.sort((a,b)=>a.p/a.q-b.p/b.q);}
+const ALL=getOrbits();
+
+let curEvents=[];
+function runSim(){
+  const sX=+document.getElementById('sX').value,sY=+document.getElementById('sY').value;
+  const vx=+document.getElementById('vX').value,vy=+document.getElementById('vY').value;
+  const steps=+document.getElementById('steps').value;
+  curEvents=runBilliard(sX,sY,vx,vy,steps);
+  const dH=curEvents.filter(e=>e.isDiag).length,oH=curEvents.filter(e=>!e.isDiag).length,cH=curEvents.filter(e=>e.isCorner).length;
+  const g=gcd(Math.abs(vx),Math.abs(vy)),dr=dH/steps;
+  document.getElementById('sDiag').textContent=dH;
+  document.getElementById('sOff').textContent=oH;
+  document.getElementById('sCorner').textContent=cH;
+  document.getElementById('sSlope').textContent=`${vy/g}/${vx/g}`;
+  document.getElementById('sGrade').textContent=dr>0.4?'A':dr>0.25?'B':'C';
+  drawGrid(curEvents,sX,sY);
+  drawPhase(curEvents);
+  updatePhaseStats(curEvents,dH,oH,cH);
+  updateData(curEvents);
+  writeBrain({totalSteps:steps,diagHits:dH,offDiagHits:oH,cornerHits:cH,diagRatio:+dr.toFixed(4),sizeX:sX,sizeY:sY,vx,vy,slope:`${vy/g}/${vx/g}`,winding:+((steps*(vy/g))/(sX*sY)).toFixed(4),chaos_ratio:+((oH/steps).toFixed(4)),grade:dr>0.4?'GRADE_A':dr>0.25?'GRADE_B':'GRADE_C'});
+}
+
+function drawGrid(ev,sX,sY){
+  const c=document.getElementById('gridCanvas'),ctx=c.getContext('2d'),W=340,H=280,cW=W/(sX+1),cH=H/(sY+1);
+  ctx.fillStyle='#04080f';ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='#0f1e33';ctx.lineWidth=0.5;
+  for(let i=1;i<=sX;i++){ctx.beginPath();ctx.moveTo(i*cW,0);ctx.lineTo(i*cW,H);ctx.stroke();}
+  for(let j=1;j<=sY;j++){ctx.beginPath();ctx.moveTo(0,j*cH);ctx.lineTo(W,j*cH);ctx.stroke();}
+  const max=Math.min(ev.length,600);
+  for(let i=1;i<max;i++){const p=ev[i-1],cu=ev[i],t=i/max;ctx.strokeStyle=`hsla(${190+t*140},100%,60%,0.55)`;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(p.x*cW,p.y*cH);ctx.lineTo(cu.x*cW,cu.y*cH);ctx.stroke();}
+  ev.forEach(e=>{if(e.isCorner){ctx.fillStyle='#ffd700';ctx.shadowColor='#ffd700';ctx.shadowBlur=10;ctx.beginPath();ctx.arc(e.x*cW,e.y*cH,5,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;}else if(e.isDiag){ctx.fillStyle='#00e5ff';ctx.beginPath();ctx.arc(e.x*cW,e.y*cH,2.5,0,Math.PI*2);ctx.fill();}});
+  if(ev.length>0){ctx.strokeStyle='#00ff88';ctx.lineWidth=2;ctx.strokeRect(ev[0].x*cW-5,ev[0].y*cH-5,10,10);}
+}
+
+function drawPhase(ev){
+  const c=document.getElementById('phaseCanvas'),ctx=c.getContext('2d'),W=340,H=260;
+  ctx.fillStyle='#04080f';ctx.fillRect(0,0,W,H);
+  if(ev.length<2)return;
+  const sX=Math.max(...ev.map(e=>e.x));
+  ctx.strokeStyle='rgba(0,229,255,0.15)';ctx.lineWidth=0.8;ctx.beginPath();
+  ev.slice(0,300).forEach((e,i)=>{const px=(e.x/(sX+1))*W,py=H-((e.phase/MOD)*H*0.95)-2;i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);});ctx.stroke();
+  ev.forEach(e=>{const px=(e.x/(sX+1))*W,py=H-((e.phase/MOD)*H*0.95)-2,h=e.isDiag?190:330,r=e.isCorner?4:e.isDiag?2:1.2;ctx.fillStyle=`hsla(${h},100%,${e.isCorner?80:60}%,${e.isCorner?1:0.6})`;ctx.beginPath();ctx.arc(px,py,r,0,Math.PI*2);ctx.fill();});
+  ctx.strokeStyle='#0f1e33';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(0,H-1);ctx.lineTo(W,H-1);ctx.stroke();
+  ctx.fillStyle='#4a6a7a';ctx.font='9px monospace';ctx.fillText('x →',W-24,H-4);ctx.fillText('φ',4,12);
+}
+
+function updatePhaseStats(ev,dH,oH,cH){
+  const uq=new Set(ev.map(e=>e.phase)).size;
+  document.getElementById('phaseStats').innerHTML=`<div class="lbl">PHASE STATISTICS</div>`+
+  [['Unique phases',uq],['Diag ratio',(dH/ev.length).toFixed(4)],['Corner ratio',(cH/ev.length).toFixed(6)],['Chaos ratio',(oH/ev.length).toFixed(4)]].map(([k,v])=>`<div class="row"><span>${k}</span><span>${v}</span></div>`).join('');
+}
+
+function updateData(ev){
+  document.getElementById('dataTable').innerHTML=ev.slice(0,20).map(e=>`<div style="display:grid;grid-template-columns:36px 36px 36px 36px 80px 56px;padding:4px 10px;border-bottom:1px solid #1a2a3a"><span style="color:#4a6a7a;font-size:9px">${e.t}</span><span style="color:#c8dce8;font-size:9px">${e.x}</span><span style="color:#c8dce8;font-size:9px">${e.y}</span><span style="color:${e.isDiag?'#00e5ff':'#4a6a7a'};font-size:9px">${e.isDiag?'●':'○'}</span><span style="color:#aa00ff;font-size:8px">${e.phase}</span><span style="color:${e.isCorner?'#ffd700':e.isDiag?'#00e5ff':'#4a6a7a'};font-size:8px">${e.isCorner?'CORNER':e.isDiag?'DIAG':'off'}</span></div>`).join('');
+}
+
+function drawLattice(sel=null){
+  const c=document.getElementById('latticeCanvas'),ctx=c.getContext('2d'),W=340,H=240,pad=28,sX=(W-pad*2)/6,sY=(H-pad*2)/6;
+  ctx.fillStyle='#04080f';ctx.fillRect(0,0,W,H);
+  ALL.forEach((o,i)=>{ALL.forEach((o2,j)=>{if(i>=j)return;if(Math.abs(o.p*o2.q-o2.p*o.q)===1){ctx.strokeStyle='rgba(0,100,150,0.2)';ctx.lineWidth=0.7;ctx.beginPath();ctx.moveTo(pad+(o.p-1)*sX,H-pad-(o.q-1)*sY);ctx.lineTo(pad+(o2.p-1)*sX,H-pad-(o2.q-1)*sY);ctx.stroke();}});});
+  ALL.forEach((o,i)=>{const px=pad+(o.p-1)*sX,py=H-pad-(o.q-1)*sY,iS=sel&&sel.label===o.label,col=OC[i%OC.length],r=iS?9:4+Math.log(o.period+1)*0.8;if(iS){ctx.shadowColor=col;ctx.shadowBlur=18;}ctx.fillStyle=iS?col:col+'99';ctx.beginPath();ctx.arc(px,py,r,0,Math.PI*2);ctx.fill();ctx.shadowBlur=0;if(iS||(o.p<=2&&o.q<=3)){ctx.fillStyle='#c8dce8';ctx.font=(iS?'bold ':'')+'9px monospace';ctx.fillText(o.label,px+6,py-3);}});
+  ctx.fillStyle='#4a6a7a';ctx.font='9px monospace';ctx.fillText('p →',W-24,H-4);ctx.fillText('q',4,12);
+}
+
+let selOrbit=null;
+document.getElementById('latticeCanvas').addEventListener('click',e=>{
+  const rect=e.target.getBoundingClientRect(),mx=e.clientX-rect.left,my=e.clientY-rect.top;
+  const pad=28,sX=(340-pad*2)/6,sY=(240-pad*2)/6;
+  let best=null,bd=18;
+  ALL.forEach(o=>{const d=Math.hypot(mx-(pad+(o.p-1)*sX),my-(240-pad-(o.q-1)*sY));if(d<bd){bd=d;best=o;}});
+  if(best){selOrbit=best;drawLattice(best);showOrbitDetail(best);}
+});
+
+function showOrbitDetail(o){
+  document.getElementById('orbitDetail').innerHTML=`<div class="card"><div style="color:#00e5ff;font-size:13px;font-weight:700;margin-bottom:8px">ORBIT ${o.label}</div>${[['p',o.p],['q',o.q],['Period',o.period],['Slope',(o.q/o.p).toFixed(4)]].map(([k,v])=>`<div class="row"><span>${k}</span><span style="color:#c8dce8">${v}</span></div>`).join('')}<button onclick="loadOrbit(${o.p},${o.q})" style="margin-top:10px;width:100%;padding:7px 0;background:rgba(0,229,255,0.1);border:1px solid #00e5ff;color:#00e5ff;font-family:monospace;font-size:10px;border-radius:4px;cursor:pointer">LOAD INTO SIM</button></div>`;
+}
+
+function loadOrbit(p,q){document.getElementById('sX').value=p;document.getElementById('sY').value=q;document.getElementById('vX').value=q;document.getElementById('vY').value=p;runSim();showTab('grid',document.querySelector('.tab'));}
+
+// Auto sweep
+let autoRunning=false,autoIdx=0,autoTimer=null;
+function toggleAuto(){
+  autoRunning=!autoRunning;
+  const btn=document.getElementById('autoBtn');
+  if(autoRunning){btn.textContent='⏹ STOP';btn.style.borderColor='#ff00aa';btn.style.color='#ff00aa';btn.style.background='rgba(255,0,170,0.1)';autoTimer=setInterval(doAutoStep,3000);doAutoStep();}
+  else{clearInterval(autoTimer);btn.textContent='▶ START';btn.style.borderColor='#00ff88';btn.style.color='#00ff88';btn.style.background='rgba(0,255,136,0.1)';document.getElementById('footerStatus').textContent='MANUAL';}
+}
+function doAutoStep(){
+  const o=ALL[autoIdx];
+  document.getElementById('sX').value=o.p;document.getElementById('sY').value=o.q;document.getElementById('vX').value=o.q;document.getElementById('vY').value=o.p;
+  runSim();
+  document.getElementById('autoTitle').textContent='SWEEPING '+o.label;
+  document.getElementById('autoSub').textContent=(autoIdx+1)+'/'+ALL.length+' orbits · 3s each';
+  document.getElementById('autoBar').style.width=((autoIdx+1)/ALL.length*100)+'%';
+  document.getElementById('footerStatus').textContent='AUTO '+(autoIdx+1)+'/'+ALL.length;
+  const log=document.getElementById('autoLog');
+  const entry=document.createElement('div');entry.className='log-entry';entry.style.color=autoIdx===0?'#00ff88':'#4a6a7a';entry.textContent=`[${o.label}] p=${o.p} q=${o.q} T=${o.period}`;log.insertBefore(entry,log.firstChild);if(log.children.length>30)log.removeChild(log.lastChild);
+  autoIdx=(autoIdx+1)%ALL.length;
+}
+
+function showTab(name,btn){
+  ['grid','phase','lattice','auto','data'].forEach(t=>document.getElementById('tab-'+t).style.display='none');
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).style.display='block';
+  btn.classList.add('active');
+  if(name==='lattice')drawLattice(selOrbit);
+}
+
+// Init
+document.querySelectorAll('.controls input').forEach(i=>i.addEventListener('change',runSim));
+runSim();
+drawLattice();
+
+// Show orbit grid in lattice tab initially
+document.getElementById('orbitDetail').innerHTML='<div class="orbit-grid">'+ALL.map((o,i)=>`<div class="orbit-node" style="border:1px solid ${OC[i%OC.length]}44" onclick="selOrbit=ALL[${i}];drawLattice(ALL[${i}]);showOrbitDetail(ALL[${i}])"><span class="orbit-name" style="color:${OC[i%OC.length]}">${o.label}</span><div class="orbit-t">T=${o.period}</div></div>`).join('')+'</div>';
+</script>
+</body>
 </html>
